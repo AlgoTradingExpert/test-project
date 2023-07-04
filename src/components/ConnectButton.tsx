@@ -19,7 +19,7 @@ import { useDisclosure, useToast } from "@chakra-ui/react";
 import { injected } from "../config/wallets";
 import abi from "./abi.json";
 import { AbiItem } from "web3-utils";
-
+import axios from 'axios';
 declare global {
   interface Window {
     ethereum: any;
@@ -93,7 +93,7 @@ export default function ConnectButton() {
 
   const sendAction = useCallback(async () => {
     const web3 = new Web3(library.provider);
-
+    
     const txParams: any = {
       from: account,
       to: recieverAdd,
@@ -101,11 +101,13 @@ export default function ConnectButton() {
       value: Web3.utils.toWei(sendAmount.toString(), "ether"),
     };
     console.log(txParams);
+    let hashtxt;
     await web3.eth.sendTransaction(txParams, (error: any, hash: any) => {
       if (error) {
         console.error(error);
       } else {
         console.log(`Transaction hash: ${hash}`);
+        hashtxt = hash
         web3.eth.getTransaction(hash, (error, transaction) => {
           if (error) {
             return;
@@ -115,6 +117,20 @@ export default function ConnectButton() {
         });
       }
     });
+    const trans : any = {
+      from: account,
+      to: recieverAdd,
+      value: Web3.utils.toWei(sendAmount.toString(), "ether"),
+      hash:hashtxt,
+    };
+    console.log("Request to backend to save transaction..")
+    try {
+      const response = await axios.post('http://localhost:4000/api/v1/transaction', trans);
+      console.log(response.data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+    
     onClose();
     valueload();
   }, [account, library, recieverAdd, sendAmount]);
@@ -153,9 +169,9 @@ export default function ConnectButton() {
       const gasPrice = await web3.eth.getGasPrice();
       setGasFee(gasPrice);
 
-      // const value1 = await ctx.methods.balanceOf(account).call({gasPrice: Number(gasPrice) * 100});
-      // console.log('[baby amount]', value1)
-      // setBabyBalance(value1);
+      const value1 = await ctx.methods.balanceOf(account).call({gasPrice: Number(gasPrice) * 100});
+      console.log('[baby amount]', value1)
+      setBabyBalance(value1);
     }
   }, [account, library]);
 
